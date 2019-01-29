@@ -1,23 +1,23 @@
 ﻿using System.Web.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WebApplication.Controllers;
+using Xunit;
 
-namespace WebApplication.Tests.Controllers
+namespace WebApplication.xUnitTests.Controllers
 {
-   [TestClass]
    public class HomeControllerTest
    {
-      [TestMethod]
-      public void About( )
+      [Fact]
+      public void Contact( )
       {
          // Arrange
          HomeController controller = new HomeController( );
 
          // Act
-         ViewResult result = controller.About( ) as ViewResult;
+         ViewResult result = controller.Contact( ) as ViewResult;
 
          // Assert
-         Assert.AreEqual( "Your application description page.", result.ViewBag.Message );
+         Assert.IsNotNull( result );
       }
    }
 }
