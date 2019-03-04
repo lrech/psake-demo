@@ -1,0 +1,106 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+   <PropertyGroup>
+      <ApplicationsProjectOutputDirectory>$(OutDir)_PublishedApplications\$(MSBuildProjectName)</ApplicationsProjectOutputDirectory>
+      <DisableLinkInCopyWebApplicaton Condition="'$(DisableLinkInCopyWebApplicaton)'==''">False</DisableLinkInCopyWebApplicaton>
+   </PropertyGroup>
+
+   <PropertyGroup>
+      <PrepareForRunDependsOn>
+         $(PrepareForRunDependsOn);
+         _CopyApplications
+      </PrepareForRunDependsOn>
+   </PropertyGroup>
+
+   <Target Name="_CopyApplications">
+      <!-- Log tasks -->
+      <Message Text="Copying Web Application Project Files for $(MSBuildProjectName)" />
+
+      <!-- Create the _PublishedWebsites\app folder -->
+      <MakeDir Directories="$(ApplicationsProjectOutputDirectory)" />
+
+      <!-- Copy build outputs to _PublishedWebsites\app folder -->
+      <Copy SourceFiles="@(IntermediateAssembly)" DestinationFolder="$(ApplicationsProjectOutputDirectory)"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+      <Copy SourceFiles="@(AddModules)"
+            DestinationFolder="$(ApplicationsProjectOutputDirectory)"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+      <Copy SourceFiles="$(IntermediateOutputPath)$(_SGenDllName)"
+            DestinationFolder="$(ApplicationsProjectOutputDirectory)\%(Content.SubFolder)%(Content.RecursiveDir)"
+            SkipUnchangedFiles="true"
+            Condition="'$(_SGenDllCreated)'=='true'"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+      <Copy SourceFiles="$(IntermediateOutputPath)$(TargetName).pdb"
+            DestinationFolder="$(ApplicationsProjectOutputDirectory)"
+            SkipUnchangedFiles="true"
+            Condition="'$(_DebugSymbolsProduced)'=='true'"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+      <Copy SourceFiles="@(DocFileItem)"
+            DestinationFolder="$(ApplicationsProjectOutputDirectory)"
+            SkipUnchangedFiles="true"
+            Condition="'$(_DocumentationFileProduced)'=='true'"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+      <Copy SourceFiles="@(IntermediateSatelliteAssembliesWithTargetPath)"
+            DestinationFiles="@(IntermediateSatelliteAssembliesWithTargetPath->'$(ApplicationsProjectOutputDirectory)\%(Culture)\$(TargetName).resources.dll')"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+      <Copy SourceFiles="@(ReferenceComWrappersToCopyLocal); @(ResolvedIsolatedComModules); @(_DeploymentLooseManifestFile); @(NativeReferenceFile)"
+            DestinationFolder="$(ApplicationsProjectOutputDirectory)"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+      <!-- copy any referenced assemblies to _PublishedWebsites\app folder -->
+      <Copy SourceFiles="@(ReferenceCopyLocalPaths)"
+            DestinationFiles="@(ReferenceCopyLocalPaths->'$(ApplicationsProjectOutputDirectory)\%(DestinationSubDirectory)%(Filename)%(Extension)')"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+      <!-- Copy content files recursively to _PublishedWebsites\app\ folder -->
+      <Copy SourceFiles="@(Content)" Condition="'%(Content.Link)' == ''"
+            DestinationFiles="@(Content -> '$(ApplicationsProjectOutputDirectory)\%(RelativeDir)\%(FileName)%(Extension)')"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" />
+      <Copy SourceFiles="@(Content)" Condition="!$(DisableLinkInCopyWebApplicaton) And '%(Content.Link)' != ''"
+            DestinationFiles="@(Content -> '$(ApplicationsProjectOutputDirectory)\%(Link)')"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+      <!-- Copy items that have been marked to be copied to the bin folder -->
+      <Copy SourceFiles="@(_SourceItemsToCopyToOutputDirectory)"
+            DestinationFiles="@(_SourceItemsToCopyToOutputDirectory-> '$(ApplicationsProjectOutputDirectory)\%(TargetPath)')"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+      <Copy SourceFiles="@(_SourceItemsToCopyToOutputDirectoryAlways)"
+            DestinationFiles="@(_SourceItemsToCopyToOutputDirectoryAlways-> '$(ApplicationsProjectOutputDirectory)\%(TargetPath)')"
+            SkipUnchangedFiles="false"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+      <!-- Copy Silverlight Zip and Xzp file to _PublishedWebsites\app\ folder-->
+      <Copy SourceFiles="@(_WebApplicationSilverlightXapFiles)"
+            DestinationFolder="$(ApplicationsProjectOutputDirectory)\%(_WebApplicationSilverlightXapFiles.RelativeDir)"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+      <!-- Copy items that need to be bin deployed to the bin folder -->
+      <Copy SourceFiles="@(_binDeployableAssemblies)"
+            DestinationFolder="$(ApplicationsProjectOutputDirectory)\%(_binDeployableAssemblies.DestinationRelPath)"
+            SkipUnchangedFiles="true"
+            Retries="$(CopyRetryCount)"
+            RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"/>
+
+   </Target>
+</Project>

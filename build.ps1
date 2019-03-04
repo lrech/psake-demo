@@ -1,4 +1,10 @@
-﻿function Initialize-MSBuild {
+﻿param(
+   [Int32]$buildNumber=0,
+   [String]$branchName="localBuild",
+   [String]$gitCommitHash="unknownHash",
+   [Switch]$isMainBranch=$False)
+
+function Initialize-MSBuild {
    [CmdletBinding()]
    param ()
 
@@ -34,12 +40,18 @@ Initialize-MSBuild
 Import-Module $psakeModule
 
 Invoke-psake -buildFile .\Build\psakefile.ps1 `
-             -taskList Test `
+             -taskList Package `
              -framework 4.6.1 `
              -properties @{ 
                 "buildConfiguration" = "Release"
                 "buildPlatform" = "Any CPU" } `
-             -parameters @{ "solutionFile" = "..\psake.sln" }
+             -parameters @{ 
+                "solutionFile" = "..\psake.sln"
+                "buildNumber" = $buildNumber
+                "branchName" = $branchName
+                "gitCommitHash" = $gitCommitHash
+                "isMainBranch" = $isMainBranch
+             }
 
 Write-Host "Build exit code: " $LASTEXITCODE
 

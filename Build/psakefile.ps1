@@ -12,6 +12,8 @@ properties {
    $publishedNUnitTestsDirectory = "$temporaryOutputDirectory\_PublishedNUnitTests"
    $publishedxUnitTestsDirectory = "$temporaryOutputDirectory\_PublishedxUnitTests"
    $publishedMSTestTestsDirectory = "$temporaryOutputDirectory\_PublishedMSTests"
+   $publishedApplicationsDirectory = "$temporaryOutputDirectory\_PublishedApplications"
+   $publishedWebsitesDirectory = "$temporaryOutputDirectory\_PublishedWebsites"
 
    $testResultsDirectory = "$outputDirectory\TestResults"
    $NUnitTestResultsDirectory = "$testResultsDirectory\NUnit"
@@ -24,6 +26,9 @@ properties {
    $testCoverageExcludeByAttribute = "System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage"
    $testCoverageExcludeByFile = "*\*Designer.cs;*\*.g.cs;*\*.g.i.cs"
    
+   $packagesOutputDirectory = "$outputDirectory\Packages"
+   $applicationsOutputDirectory = "$packagesOutputDirectory\Applications"
+
    $buildConfiguration = "Release"
    $buildPlatform = "Any CPU"
 
@@ -36,6 +41,8 @@ properties {
                 
    $openCoverExe = (Find-PackagePath $packagesPath  "OpenCover") + "\Tools\OpenCover.Console.exe"
    $reportGeneratorExe = (Find-PackagePath $packagesPath  "ReportGenerator") + "\Tools\net47\ReportGenerator.exe"
+   $7ZipExe = (Find-PackagePath $packagesPath  "7-Zip.CommandLine") + "\Tools\7za.exe"
+   $nugetExe = (Find-PackagePath $packagesPath  "NuGet.CommandLine") + "\Tools\NuGet.exe"
 }
 
 FormatTaskName "`r`n`r`n--------- Executing {0} Task ---------"
@@ -59,6 +66,8 @@ task Init -description "Initialises the build by removing previous artifacts and
    Assert (Test-Path $vsTestExe) "VSTest Console could not be found"
    Assert (Test-Path $openCoverExe) "OpenCover Console could not be found"
    Assert (Test-Path $reportGeneratorExe) "ReportGenerator Console could not be found"
+   Assert (Test-Path $7ZipExe) "7-Zip Command Line could not be found"
+   Assert (Test-Path $nugetExe) "NuGet Command Line could not be found"
 
    # Remove previous build results
    if(Test-Path $outputDirectory)
@@ -201,5 +210,56 @@ task Test `
    else
    {
       Write-Host "No coverage file found at: $testCoverageReportPath"
+   }
+}
+
+task Package `
+     -depends Compile, Test `
+     -description "Package applications" `
+     -requiredVariables publishedWebsitesDirectory, publishedApplicationsDirectory, applicationsOutputDirectory `
+{
+   # Merge published websites and published applications paths
+   $applications = @(Get-ChildItem $publishedWebsitesDirectory) + @(Get-ChildItem $publishedApplicationsDirectory)
+
+   if( $applications.Length -gt 0 -and !(Test-Path $applicationsOutputDirectory))
+   {
+      New-Item $applicationsOutputDirectory -ItemType Directory | Out-Null
+   }
+
+   foreach($application in $applications)
+   {
+      $nuspecPath = $application.FullName + "\" + $application.Name + ".nuspec"
+
+      if( Test-Path $nuspecPath )
+      {
+         Write-Host "Packaging $($application.Name) as a NuGet package"
+
+         $nuspec = [xml](Get-Content -Path $nuspecPath)
+         $metadata = $nuspec.package.metadata
+
+         $metadata.version = $metadata.version.Replace("[buildNumber]", $buildNumber)
+
+         if(! $isMainBranch)
+         {
+            $metadata.version = $metadata.version + "-$branchName"
+         }
+
+         $metadata.releaseNotes = "Build Number: $buildNumber`r`nBranch Name: $branchName`r`nCommit Hash: $gitCommitHash"
+
+         # Save the nuspec file
+         $nuspec.Save((Get-Item $nuspecPath))
+
+         # package as NuGet package
+         Exec { &$nugetExe pack $nuspecPath -OutputDirectory $applicationsOutputDirectory }
+      }
+      else
+      {
+         Write-Host "Packaging $($application.Name) as a zip file"
+
+         $archivePath = "$($applicationsOutputDirectory)\$($application.Name).zip"
+         $inputDirectory = "$($application.FullName)\*"
+
+         Exec { &$7ZipExe a -r -mx3 $archivePath $inputDirectory }
+      }
    }
 }
