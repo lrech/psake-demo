@@ -14,6 +14,7 @@ properties {
    $publishedMSTestTestsDirectory = "$temporaryOutputDirectory\_PublishedMSTests"
    $publishedApplicationsDirectory = "$temporaryOutputDirectory\_PublishedApplications"
    $publishedWebsitesDirectory = "$temporaryOutputDirectory\_PublishedWebsites"
+   $publishedLibrariesDirectory = "$temporaryOutputDirectory\_PublishedLibraries"
 
    $testResultsDirectory = "$outputDirectory\TestResults"
    $NUnitTestResultsDirectory = "$testResultsDirectory\NUnit"
@@ -28,6 +29,7 @@ properties {
    
    $packagesOutputDirectory = "$outputDirectory\Packages"
    $applicationsOutputDirectory = "$packagesOutputDirectory\Applications"
+   $librariesOutputDirectory = "$packagesOutputDirectory\Libraries"
 
    $buildConfiguration = "Release"
    $buildPlatform = "Any CPU"
@@ -83,17 +85,13 @@ task Init -description "Initialises the build by removing previous artifacts and
    New-Item $temporaryOutputDirectory -ItemType Directory | Out-Null
 }
 
-task Clean -description "Remove temporary files" {
-   Write-Host $cleanMessage
-}
-
 task Compile `
    -depends Init `
    -description "Compile the code" `
    -requiredVariables solutionFile, buildConfiguration, buildPlatform, temporaryOutputDirectory {
    Write-Host "Building solution $solutionFile"
 
-   Exec{ msbuild $solutionFile "/p:Configuration=$buildConfiguration;Platform=$buildPlatform;OutDir=$temporaryOutputDirectory" }
+   Exec{ msbuild $solutionFile "/p:Configuration=$buildConfiguration;Platform=$buildPlatform;OutDir=$temporaryOutputDirectory;NuGetExePath=$nugetExe" }
 }
 
 task TestNUnit `
@@ -216,7 +214,7 @@ task Test `
 task Package `
      -depends Compile, Test `
      -description "Package applications" `
-     -requiredVariables publishedWebsitesDirectory, publishedApplicationsDirectory, applicationsOutputDirectory `
+     -requiredVariables publishedWebsitesDirectory, publishedApplicationsDirectory, publishedLibrariesDirectory, applicationsOutputDirectory, librariesOutputDirectory  `
 {
    # Merge published websites and published applications paths
    $applications = @(Get-ChildItem $publishedWebsitesDirectory) + @(Get-ChildItem $publishedApplicationsDirectory)
@@ -261,5 +259,30 @@ task Package `
 
          Exec { &$7ZipExe a -r -mx3 $archivePath $inputDirectory }
       }
+
+      # Moving NuGet libraries to the packages directory
+      if(Test-Path $publishedLibrariesDirectory)
+      {
+         if(!(Test-Path $librariesOutputDirectory))
+         {
+            Mkdir $librariesOutputDirectory | Out-Null
+
+            Get-ChildItem -Path $publishedLibrariesDirectory -Filter "*.nupkg" -Recurse | Move-Item -Destination $librariesOutputDirectory
+         }
+      }
    }
 }
+
+task Clean `
+     -depends Compile, Test, Package `
+     -description "Remove temporary files" `
+     -requiredVariables temporaryOutputDirectory `
+{
+   if(Test-Path $temporaryOutputDirectory)
+   {
+      Write-Host "Removing temporary output directory located at $temporaryOutputDirectory"
+
+      Remove-Item $temporaryOutputDirectory -force -Recurse
+   }
+}
+

@@ -40,7 +40,7 @@ Initialize-MSBuild
 Import-Module $psakeModule
 
 Invoke-psake -buildFile .\Build\psakefile.ps1 `
-             -taskList Package `
+             -taskList Clean `
              -framework 4.6.1 `
              -properties @{ 
                 "buildConfiguration" = "Release"

@@ -58,6 +58,9 @@
     <None Include="MSBuild\ApplicationBuild.targets">
       <SubType>Designer</SubType>
     </None>
+    <None Include="MSBuild\NuGetBuild.targets">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="MSBuild\NUnitBuild.targets">
       <SubType>Designer</SubType>
     </None>
