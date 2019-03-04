@@ -15,7 +15,8 @@ function Prepare-Tests
    param(
       [Parameter(Position=0,Mandatory=1)]$testRunnerName,
       [Parameter(Position=1,Mandatory=1)]$publishedTestsDirectory,
-      [Parameter(Position=2,Mandatory=1)]$testResultsDirectory
+      [Parameter(Position=2,Mandatory=1)]$testResultsDirectory,
+      [Parameter(Position=3,Mandatory=1)]$testCoverageDirectory
    )
 
    $projects = Get-ChildItem $publishedTestsDirectory 
@@ -33,6 +34,13 @@ function Prepare-Tests
    Write-Host ($projects | Select $_.Name)
 
    # Create the test results directory if needed
+   if(!(Test-Path $testCoverageDirectory) )
+   {
+      Write-Host "Creating test coverage directory located at $testCoverageDirectory"
+      mkdir $testCoverageDirectory | Out-Null
+   }
+   
+   # Create the test results directory if needed
    if(!(Test-Path $testResultsDirectory) )
    {
       Write-Host "Creating test results directory located at $testResultsDirectory"
@@ -40,9 +48,39 @@ function Prepare-Tests
    }
    
    # Get the list of test DLLs
-   $testAssembliesPaths = $projects | ForEach-Object { $_.FullName + "\" + $_.Name + ".dll" }
+   $testAssembliesPaths = $projects | ForEach-Object { "`"`"" + $_.FullName + "\" + $_.Name + ".dll`"`"" }
 
    $testAssemblies = [string]::Join(" ", $testAssembliesPaths)
 
    return $testAssemblies
+}
+
+function Run-Tests
+{
+   [CmdletBinding()]
+   param(
+      [Parameter(Position=0,Mandatory=1)]$openCoverExe,
+      [Parameter(Position=1,Mandatory=1)]$targetExe,
+      [Parameter(Position=2,Mandatory=1)]$targetArgs,
+      [Parameter(Position=3,Mandatory=1)]$coveragePath,
+      [Parameter(Position=3,Mandatory=1)]$filter,
+      [Parameter(Position=3,Mandatory=1)]$excludeByAttribute,
+      [Parameter(Position=3,Mandatory=1)]$excludeByFile
+   )
+
+   Write-Host "Running tests"
+
+   Exec { &$openCoverExe -target:$targetExe `
+                         -targetArgs:$targetArgs `
+                         -output:$coveragePath `
+                         -register:user `
+                         -filter:$filter `
+                         -excludebyattribute:$excludeByAttribute `
+                         -excludebyfile:$excludeByFile `
+                         -skipautoprops `
+                         -mergebyhash `
+                         -mergeoutput `
+                         -hideskipped:All `
+                         -returntargetcode
+   }
 }
