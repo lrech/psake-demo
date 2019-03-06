@@ -51,23 +51,6 @@
     <None Include="..\build.ps1">
       <Link>build.ps1</Link>
     </None>
-    <None Include="helpers.ps1" />
-    <None Include="MSBuild\MSTestBuild.targets">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="MSBuild\ApplicationBuild.targets">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="MSBuild\NuGetBuild.targets">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="MSBuild\NUnitBuild.targets">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="MSBuild\xUnitBuild.targets">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="psakefile.ps1" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

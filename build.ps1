@@ -35,18 +35,20 @@ Remove-Module [p]sake
 # find psake's path
 $psakeModule = (Get-ChildItem (".\packages\psake*\tools\psake\psake.psm1")).FullName | Sort-Object $_ | select -Last 1
 
+$psakeScript = (Get-ChildItem (".\Packages\Pluralsight.Build*\tools\psakefile.ps1")).FullName | Sort-Object $_ | select -last 1
+
 Install-Module VSSetup -Scope CurrentUser 
 Initialize-MSBuild
 Import-Module $psakeModule
 
-Invoke-psake -buildFile .\Build\psakefile.ps1 `
+Invoke-psake -buildFile $psakeScript `
              -taskList Clean `
              -framework 4.6.1 `
              -properties @{ 
                 "buildConfiguration" = "Release"
                 "buildPlatform" = "Any CPU" } `
              -parameters @{ 
-                "solutionFile" = "..\psake.sln"
+                "solutionFile" = Resolve-Path(".\psake.sln")
                 "buildNumber" = $buildNumber
                 "branchName" = $branchName
                 "gitCommitHash" = $gitCommitHash
