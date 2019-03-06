@@ -35,7 +35,7 @@ Remove-Module [p]sake
 # find psake's path
 $psakeModule = (Get-ChildItem (".\packages\psake*\tools\psake\psake.psm1")).FullName | Sort-Object $_ | select -Last 1
 
-$psakeScript = (Get-ChildItem (".\Packages\Pluralsight.Build*\tools\psakefile.ps1")).FullName | Sort-Object $_ | select -last 1
+$psakeScript = (Get-ChildItem (".\Packages\Hardcat.Build*\tools\psakefile.ps1")).FullName | Sort-Object $_ | select -last 1
 
 Install-Module VSSetup -Scope CurrentUser 
 Initialize-MSBuild
